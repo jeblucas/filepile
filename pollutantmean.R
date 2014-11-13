@@ -13,14 +13,26 @@
   ## in the 'id' vector (ignoring NA values)
 #}
 pollutantmean <-function(directory, pollutant, id=1:332){
+  
+  pollutantraw <- list.files(directory,full.names=T)
+  dataset <-as.numeric(c(NA,NA,NA,NA))
+  
   for (i in id) { #get just the files requested, defaults to all of them
-    filename <- 
-    datasubset <- read.csv(, comment.char="", ) #build a datasubset dataframe of those csvs using read.csv()
-  if (pollutant = "sulfate") {                  #if they opt for sulfate levels
-    print(mean(datasubset[,2], na.rm = TRUE ))  #print the mean of the second column's entries
-  } else {                                      #otherwise
-    print(mean(datasubset[,3], na.rm = TRUE ))   #print the mean of the third column's entries
-  }
+
+    #build a subset dataframe of those csvs using read.csv(), with some tidying
+      subset <- read.csv(pollutantraw[i], comment.char="")
+    #build a dataset for means using row binding  
+      dataset <- rbind(dataset, subset)
   }
   
+  #if they opt for sulfate levels, print the rounded mean.  
+  if (pollutant == "sulfate") {                 
+      print(round(mean(dataset[,2], na.rm = TRUE ),3))  
+  # if they opt for nitrates    
+      } else if (pollutant=="nitrate") {                                      
+      print(round(mean(dataset[,3], na.rm = TRUE ),3))
+  # otherwise let them know    
+      } else {
+      print("Must specify nitrate or sulfate.")
+  }
 }
