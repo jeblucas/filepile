@@ -12,6 +12,12 @@
   ## Return the mean of the pollutant across all monitors list
   ## in the 'id' vector (ignoring NA values)
 #}
+
+#dataset_url<-"http://d396qusza40orc.cloudfront.net/rprog%2Fdata%2Fspecdata.zip"
+#download.file(dataset_url,"specdata.zip")
+#unzip("specdata.zip")
+
+
 pollutantmean <-function(directory, pollutant, id=1:332){
   
   pollutantraw <- list.files(directory,full.names=T)
