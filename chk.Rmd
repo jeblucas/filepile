@@ -1,0 +1,171 @@
+---
+title: "House Hunting"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+A small modeling exercise on house hunting for the Adams family. This is broken up into chunks about income, expenses, and housing market stuff. Change things in the code boxes to generate new outputs.
+
+## Expenses ##
+
+Units are dollars per month ($/mo) except where noted as ANNUAL. 
+
+```{r warning=FALSE, echo=FALSE, message = FALSE}
+library(tidyverse)
+library(knitr)
+library(scales)
+```
+
+
+```{r}
+#Utilities
+utilNames <- c("Water", "Natural Gas", "Trash", "Electricity") 
+utilAmt <- c(140, 34, 20, 111) # compiled from looking at bills over last two years 
+                               # and averaging
+
+utilNewNames <- c("Pool", "Landscaping", "House Cleaning")
+utilNewAmt <- c(120, 150, 325) #compiled from research and assuming conservative costs
+
+# Cell phone, Internet are embedded in the credit card bills
+# Assume the costs of current utilities increase, bigger house after all
+# assume 200% conservatively
+
+utilAmt <- 2*utilAmt
+
+utilTotNames <- c(utilNames, utilNewNames)
+utilTot <- c(utilAmt, utilNewAmt, names(utilTotNames))
+
+kable(tibble("Utility" = utilTotNames, "Monthly Estimate" = dollar(utilTot)))
+kable(tibble("Sum" = "Sum", "Utility Total" = dollar(sum(utilTot))))
+
+```
+
+
+```{r}
+#Credit cards
+ccNames <- c("Discover", "Costco Visa")
+ccDisc <- 3430 # compiled from looking at bills over last two years and averaging 
+ccVisa <- 1467 # compiled from looking at bills over last two years and averaging
+
+
+ccTot <- c(ccDisc, ccVisa, names(ccNames))
+kable(tibble("Credit Card" = ccNames, "Monthly Estimate" = dollar(ccTot))) 
+kable(tibble("Sum" = "Sum", "Credit Card Total" = dollar(sum(ccTot))))
+```
+
+
+```{r}
+#Other monthly costs, bourne by checks, or unaccounted for (Misc)
+othNames <- c("Piano", "Kumon", "Auto Insurance", "Misc")
+othPiano <- 85*52/12 # compiled from looking at bills over last several months and averaging
+othKumon <- 300 # E & M
+othAutoIns <- 100 # paid in lump $1200 sum
+othMisc <- 50 # use this for other stuff you might think of, put it in units of $/mo
+
+othTot <- c(othPiano, othKumon, othAutoIns, othMisc, names(othNames))
+kable(tibble("Other" = othNames, "Monthly Estimate" = dollar(othTot)))  
+kable(tibble("Sum" = "Sum", "Other Monthly Total" = dollar(sum(othTot))))
+```
+
+
+```{r}
+#New home fixed expenses
+#Insurance
+insNames <- c("Homeowner's Insurance", "Earthquake")
+insHO <- floor(2400/12) # from Helene, 2400 per year
+insEQ <- floor(400*5.5/12) # from web, assuming $400k of coverage @ $5.5/k per year
+insTot <- c(insHO, insEQ, names(insNames))
+
+#HOA grr
+hoaTot <- floor(565/12) #Morrison Ranch is $565/year 
+
+kable(tibble("New Expense" = c(insNames, "HOA"), "Monthly Estimate" = dollar(c(insTot, hoaTot))))  
+kable(tibble("Sum" = "Sum", "New Expense Monthly Total" = dollar(sum(insTot, hoaTot))))
+```
+
+### Total Fixed Expense ###
+```{r}
+print(paste("Total fixed expenses (minus insurance):", 
+            dollar(sum(utilTot, ccTot, othTot, hoaTot)),
+            "per month"))
+```
+\pagebreak
+
+### Mortgage ###
+
+```{r}
+homePrice <- 1.095e6
+ourHouse <- 730e3
+netSale <- ourHouse - 269e3 - 0.05*ourHouse - 5000  # sale price - mortgage principle 
+                                              # - commission - 5k in closing costs
+cashVang <- 300e3 # about 345k in there, leaving a chunk behind
+cashSav <- 10e3 + 15e3 # 10k in there, 15k in AMGN stock
+taxRate <- 0.0125
+intRate <- 0.03892
+nPayments <- 360
+intPerMonth <- intRate/12
+discountFactor <- (((1+ intPerMonth)^nPayments)-1)/((intPerMonth)*(1+intPerMonth)^nPayments)
+
+downPayment <- sum(netSale,cashSav, cashVang)
+principal <- homePrice - downPayment
+mortPayment <- (homePrice - downPayment)/discountFactor
+
+taxProp <- taxRate*homePrice/12 # Property tax is 1.25% of purchase price
+
+monthlyPayment <- floor(mortPayment + taxProp + sum(insTot)) 
+
+kable(tibble("Mortgage Info" = c("Purchase Price", "Down Payment", "Loan Principal", 
+                                 "APR", "Monthly Payment"), 
+             "Amount" = c(dollar(homePrice), dollar(downPayment), dollar(principal), 
+                                  percent(intRate), dollar(monthlyPayment))))
+
+
+```
+
+### Total Expenditures per Month ###
+
+```{r}
+print(paste("Total:", 
+            dollar(monthlyPayment + sum(utilTot, ccTot, othTot, hoaTot)),
+            "per month"))
+```
+
+\pagebreak
+
+## Income ##
+
+```{r}
+jebGross <- 172e3 # per year, 127k salary, 30k bonus, 15k equity
+hdrGross <- 111e3*1.034 # per year
+
+jebNet <- 3425*26/12 # from paystub
+hdrNet <- 2990*26/12*1.034 # from paystub
+
+invVang <-  (345e3 - cashVang)* 0.08 # assume 8% returns on Vanguard
+
+netTot <- sum(jebNet, hdrNet) # Treating Vanguard as illiquid for net
+grossTot <- sum(jebGross, hdrGross, invVang)
+
+kable(tibble("Income" = c("Annual Gross", "Monthly Takehome"), 
+                          "Amount" = c(dollar(grossTot), 
+                                       dollar(netTot))))
+
+```
+
+***
+
+## NET ##
+
+```{r}
+kable(tibble("Net" = c("Monthly", "Yearly", "DTI"), 
+             "Result" = c(dollar(netTot - 
+                                   sum(ccTot, monthlyPayment, othTot, utilTot, hoaTot)),
+                          dollar(12 * (netTot - 
+                                         sum(utilTot, ccTot, othTot, hoaTot, monthlyPayment))), 
+                          percent(sum(monthlyPayment,ccTot)/(grossTot/12)))))
+
+
+```
+
+
